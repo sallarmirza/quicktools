@@ -1,12 +1,33 @@
-# React + Vite
+# QuickTools
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+**QuickTools** is a modular web toolkit that integrates multiple utilities in one platform, including a Notepad, Voice tools, Camera capture, and an AI-powered “Ask” feature. It is built with modern technologies, designed for ease of use, and easily extendable.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Tech Stack
 
-## Expanding the ESLint configuration
+- **Frontend:** React, TailwindCSS  
+- **Backend:** FastAPI, SQLAlchemy  
+- **Database:** SQLite (or any SQLAlchemy-supported database)  
+- **Environment Variables:** `.env` for API keys and configuration
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+---
+
+## Project Structure
+
+quicktools/
+├── frontend/ # React app
+├── backend/ # FastAPI app
+│ ├── app/
+│ │ ├── routers/ # API routes
+│ │ ├── models/ # Database models
+│ │ ├── schemas/ # Pydantic schemas
+│ │ ├── database.py # DB connection setup
+│ │ └── main.py # FastAPI application entrypoint
+├── .env # Environment variables (ignored by git)
+├── .gitignore
+└── README.md
+
+- **Notepad:** Create and save notes.  
+- **Camera:** Capture images using your device camera.  
+- **Ask (AI):** Send questions to an AI model and store Q&A in the database.
