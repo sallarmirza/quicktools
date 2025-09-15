@@ -13,20 +13,7 @@
 
 ---
 
-## Project Structure
-
-quicktools/
-├── frontend/ # React app
-├── backend/ # FastAPI app
-│ ├── app/
-│ │ ├── routers/ # API routes
-│ │ ├── models/ # Database models
-│ │ ├── schemas/ # Pydantic schemas
-│ │ ├── database.py # DB connection setup
-│ │ └── main.py # FastAPI application entrypoint
-├── .env # Environment variables (ignored by git)
-├── .gitignore
-└── README.md
+## Project Features
 
 - **Notepad:** Create and save notes.  
 - **Camera:** Capture images using your device camera.  
