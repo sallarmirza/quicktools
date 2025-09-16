@@ -14,6 +14,12 @@ const reducer = (state, action) => {
       return { ...state, currentView: "Camera" };
     case "OpenAsk":
       return { ...state, currentView: "Ask" };
+    case "SET_SPEECH_TEXT":
+      return {
+        ...state,
+        speechText: action.payload,
+      };
+
     default:
       return state;
   }

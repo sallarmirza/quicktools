@@ -1,12 +1,48 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useContext, useRef } from "react";
+import { ServiceContext } from "../context/ServiceContext";
 
 export const Notepad = () => {
-  const [currentNotes, setCurrentNotes] = useState("");
-  const [savedNotes, setSavedNotes] = useState([]);
-  const [tabTitle, setTabTitle] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [activeView, setActiveView] = useState("editor"); // "editor" or "saved"
+  // Access global context (speechText comes from mic)
+  const { state } = useContext(ServiceContext);
 
+  // Local states for note editing and management
+  const [currentNotes, setCurrentNotes] = useState(""); // current editor content
+  const [savedNotes, setSavedNotes] = useState([]);     // list of notes from backend
+  const [tabTitle, setTabTitle] = useState("");         // extracted first line as note title
+  const [isLoading, setIsLoading] = useState(false);    // loading state (saving/deleting/fetching)
+  const [activeView, setActiveView] = useState("editor"); // can switch between "editor" and "saved"
+
+  // Reference to the textarea (so we can auto-scroll when new speech is appended)
+  const textareaRef = useRef(null);
+
+  /**
+   * 🟢 Speech-to-text integration:
+   * Whenever speechText in context updates,
+   * append it to the current note.
+   */
+  useEffect(() => {
+    if (state.speechText) {
+      setCurrentNotes((prev) => {
+        const updated =
+          prev + (prev.endsWith(" ") ? "" : " ") + state.speechText;
+
+        // Update note title using the first line
+        const firstLine = updated.split("\n")[0];
+        setTabTitle(firstLine);
+
+        return updated;
+      });
+
+      // Auto-scroll editor to bottom when new speech is added
+      if (textareaRef.current) {
+        textareaRef.current.scrollTop = textareaRef.current.scrollHeight;
+      }
+    }
+  }, [state.speechText]);
+
+  /**
+   * 🟡 Fetch saved notes from backend when component mounts
+   */
   useEffect(() => {
     fetchNotes();
   }, []);
@@ -24,18 +60,32 @@ export const Notepad = () => {
     }
   };
 
+  /**
+   * 🟡 Save the current note to backend
+   */
   const saveText = async () => {
     if (currentNotes.trim() !== "") {
       setIsLoading(true);
-      const newNote = { title: tabTitle.slice(0, 25) || "Untitled", content: currentNotes };
+
+      // Create note object (title = first line or "Untitled")
+      const newNote = {
+        title: tabTitle.slice(0, 8) || "Untitled",
+        content: currentNotes,
+      };
+
       try {
         const res = await fetch("http://127.0.0.1:8000/notes/", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(newNote),
         });
+
         const data = await res.json();
+
+        // Update UI with new saved note
         setSavedNotes([...savedNotes, data]);
+
+        // Reset editor
         setCurrentNotes("");
         setTabTitle("");
       } catch (err) {
@@ -46,11 +96,17 @@ export const Notepad = () => {
     }
   };
 
+  /**
+   * 🟡 Clear current editor content
+   */
   const clearNotes = () => {
     setCurrentNotes("");
     setTabTitle("");
   };
 
+  /**
+   * 🟡 Delete a note by ID
+   */
   const deleteNote = async (id) => {
     setIsLoading(true);
     try {
@@ -63,59 +119,77 @@ export const Notepad = () => {
     }
   };
 
+  /**
+   * Format date for saved notes
+   */
   const formatDate = (dateString) => {
-    const options = { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
+    const options = {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
     };
     return new Date(dateString).toLocaleDateString(undefined, options);
   };
 
   return (
     <div className="p-4 max-w-3xl mx-auto">
+      {/* Navigation Tabs */}
       <div className="flex border-b border-gray-200 mb-6">
         <button
           onClick={() => setActiveView("editor")}
-          className={`py-3 px-6 font-medium text-sm ${activeView === "editor" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={`py-3 px-6 font-medium text-sm ${
+            activeView === "editor"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
         >
           Editor
         </button>
         <button
           onClick={() => {
             setActiveView("saved");
-            fetchNotes();
+            fetchNotes(); // refresh saved notes
           }}
-          className={`py-3 px-6 font-medium text-sm ${activeView === "saved" ? "text-blue-600 border-b-2 border-blue-600" : "text-gray-500 hover:text-gray-700"}`}
+          className={`py-3 px-6 font-medium text-sm ${
+            activeView === "saved"
+              ? "text-blue-600 border-b-2 border-blue-600"
+              : "text-gray-500 hover:text-gray-700"
+          }`}
         >
           Saved Notes {savedNotes.length > 0 && `(${savedNotes.length})`}
         </button>
       </div>
 
+      {/* EDITOR VIEW */}
       {activeView === "editor" ? (
         <div className="space-y-6">
+          {/* Textarea (typing + mic input) */}
           <div className="bg-white rounded-lg border border-gray-200 overflow-hidden shadow-sm">
             <textarea
+              ref={textareaRef}
               value={currentNotes}
               onChange={(e) => {
                 setCurrentNotes(e.target.value);
+
                 // Extract first line as title
-                const firstLine = e.target.value.split('\n')[0];
+                const firstLine = e.target.value.split("\n")[0];
                 setTabTitle(firstLine);
               }}
-              placeholder="Start writing here..."
+              placeholder="Save notes..."
               className="w-full p-4 focus:outline-none resize-none min-h-[300px] text-gray-700 leading-relaxed"
               disabled={isLoading}
             />
           </div>
 
+          {/* Editor footer: word/char count + buttons */}
           <div className="flex flex-wrap gap-3 justify-between items-center">
             <div className="text-sm text-gray-500">
-              {currentNotes.length} characters • {currentNotes.split(/\s+/).filter(Boolean).length} words
+              {currentNotes.length} characters •{" "}
+              {currentNotes.split(/\s+/).filter(Boolean).length} words
             </div>
-            
+
             <div className="flex gap-2">
               <button
                 onClick={clearNotes}
@@ -135,6 +209,7 @@ export const Notepad = () => {
           </div>
         </div>
       ) : (
+        // SAVED NOTES VIEW
         <div className="space-y-4">
           {isLoading ? (
             <div className="flex justify-center py-10">
@@ -154,7 +229,10 @@ export const Notepad = () => {
           ) : (
             <div className="grid gap-4">
               {savedNotes.map((note) => (
-                <div key={note.id} className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm">
+                <div
+                  key={note.id}
+                  className="bg-white rounded-lg border border-gray-200 p-4 shadow-sm"
+                >
                   <div className="flex justify-between items-start mb-2">
                     <h3 className="font-medium text-gray-800">{note.title}</h3>
                     <button
@@ -165,9 +243,11 @@ export const Notepad = () => {
                       ✕
                     </button>
                   </div>
-                  <p className="text-gray-600 text-sm mb-3 whitespace-pre-wrap">{note.content}</p>
+                  <p className="text-gray-600 text-sm mb-3 whitespace-pre-wrap">
+                    {note.content}
+                  </p>
                   <div className="text-xs text-gray-400">
-                    {note.created_at ? formatDate(note.created_at) : 'No date'}
+                    {note.created_at ? formatDate(note.created_at) : "No date"}
                   </div>
                 </div>
               ))}
