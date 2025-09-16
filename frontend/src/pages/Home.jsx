@@ -142,6 +142,48 @@ export function Home() {
     }
   }, [user]);
 
+useEffect(() => {
+  let recognition;
+
+  if (isRecording) {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = "en-US";
+      recognition.continuous = true; // keep listening
+      recognition.interimResults = true; // get words as they’re spoken
+
+      recognition.onresult = (event) => {
+        let transcript = "";
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+
+        dispatch({ type: "SET_SPEECH_TEXT", payload: transcript });
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error:", event.error);
+        setIsRecording(false);
+      };
+
+      recognition.start();
+    } else {
+      alert("Speech recognition not supported in this browser.");
+      setIsRecording(false);
+    }
+  }
+
+  return () => {
+    if (recognition) {
+      recognition.stop();
+    }
+  };
+}, [isRecording, dispatch]);
+
+
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
